@@ -8,22 +8,27 @@ on:
   workflow_dispatch:
 
 jobs:
-  lint:
+  get-latest-tag:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ github.head_ref }}   # checkout the correct branch name
-          fetch-depth: 0                # fetch the whole repo history
 
-      - name: Git Version
-        id: version
-        uses: codacy/git-version@2.7.1
-      
-      - name: Use the version
-        run: |
-          echo ${{ steps.version.outputs.version }}
-      - name: Use the previous version
-        run: |
-          echo ${{ steps.version.outputs.previous-version }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Ensure all tags are fetched
+
+    - name: Get latest tag
+      id: get_latest_tag
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const tags = await github.repos.listTags({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            per_page: 1
+          });
+          const latestTag = tags.data[0].name;
+          core.setOutput('latest_tag', latestTag);
+
+    - name: Display latest tag
+      run: echo "The latest tag is ${{ steps.get_latest_tag.outputs.latest_tag }}"
